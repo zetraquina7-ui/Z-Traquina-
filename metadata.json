@@ -1,0 +1,7 @@
+{
+  "name": "Universo Zé Traquina",
+  "description": "Aplicativo educativo infantil completo com aprendizado, jogos, músicas, vídeos, mascote interativo Zé Traquina e controle dos pais.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
