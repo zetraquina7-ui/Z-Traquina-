@@ -1,6 +1,9 @@
 package com.example.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.audio.MiniMaxStorytellingService
@@ -9,6 +12,7 @@ import com.example.audio.TTSManager
 import com.example.data.AppDatabase
 import com.example.data.AppRepository
 import com.example.data.UserProgress
+import com.example.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +21,15 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AppRepository(AppDatabase.getDatabase(application).progressDao())
-    val ttsManager = TTSManager(application)
-    val storytellingService = MiniMaxStorytellingService(application)
+    val ttsManager by lazy { TTSManager(application) }
+    val storytellingService by lazy { MiniMaxStorytellingService(application) }
+
+    var currentScreen by mutableStateOf<Screen>(Screen.Home)
+        private set
+
+    fun navigateTo(screen: Screen) {
+        currentScreen = screen
+    }
 
     val storyPlaybackState: StateFlow<StoryPlaybackState> = storytellingService.playbackState
 

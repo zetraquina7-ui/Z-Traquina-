@@ -4,25 +4,39 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.speech.tts.TextToSpeech
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 class TTSManager(private val context: Context) : TextToSpeech.OnInitListener {
-    private var tts: TextToSpeech? = TextToSpeech(context.applicationContext, this)
+    private var tts: TextToSpeech? = null
     private var isReady = false
     private val prefs: SharedPreferences = context.getSharedPreferences("ze_traquina_prefs", Context.MODE_PRIVATE)
 
+    init {
+        try {
+            tts = TextToSpeech(context.applicationContext, this)
+        } catch (e: Throwable) {
+            Log.e("TTSManager", "Error initializing TextToSpeech", e)
+        }
+    }
+
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("pt", "PT"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Fallback to default PT locale
-                tts?.language = Locale("pt", "PT")
+        try {
+            if (status == TextToSpeech.SUCCESS) {
+                val result = tts?.setLanguage(Locale.forLanguageTag("pt-PT"))
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    tts?.language = Locale.forLanguageTag("pt-PT")
+                }
+                tts?.setPitch(1.25f)
+                tts?.setSpeechRate(0.95f)
+                isReady = true
+            } else {
+                Log.e("TTSManager", "Native TTS Initialization failed with status: $status")
             }
-            tts?.setPitch(1.25f) // Friendly, higher pitch child voice for Zé Traquina
-            tts?.setSpeechRate(0.95f) // Clear pace for kids
-            isReady = true
-        } else {
-            Log.e("TTSManager", "Native TTS Initialization failed")
+        } catch (e: Throwable) {
+            Log.e("TTSManager", "Error in onInit", e)
         }
     }
 
@@ -48,20 +62,34 @@ class TTSManager(private val context: Context) : TextToSpeech.OnInitListener {
     }
 
     private fun speakNative(text: String) {
-        if (isReady && tts != null) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ze_traquina_tts")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (isReady && tts != null) {
+                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ze_traquina_tts")
+                }
+            } catch (e: Throwable) {
+                Log.e("TTSManager", "Error during speakNative", e)
+            }
         }
     }
 
     fun stop() {
-        MiniMaxTTSService.stop()
-        tts?.stop()
+        try {
+            MiniMaxTTSService.stop()
+            tts?.stop()
+        } catch (e: Throwable) {
+            Log.e("TTSManager", "Error stopping TTS", e)
+        }
     }
 
     fun shutdown() {
-        MiniMaxTTSService.stop()
-        tts?.stop()
-        tts?.shutdown()
+        try {
+            MiniMaxTTSService.stop()
+            tts?.stop()
+            tts?.shutdown()
+        } catch (e: Throwable) {
+            Log.e("TTSManager", "Error shutting down TTS", e)
+        }
     }
 }
 

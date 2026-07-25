@@ -41,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -129,13 +131,21 @@ fun ZeTraquinaMascot(
         )
     }
 
-    // Dynamic phrase based on emotion state
-    val emotionPhrase = when (activeEmotion) {
-        MascotEmotion.CELEBRATING -> "FANTÁSTICO! Acertaste em cheio! PARABÉNS! 🎉🏆✨"
-        MascotEmotion.EXCITED -> "UAU! Ganhaste mais estrelas reluzentes! ⭐🚀"
-        MascotEmotion.PROUD -> "Estou super orgulhoso de ti, campeão! 👑🌟"
-        MascotEmotion.THINKING -> "Hummm... pensa bem! Tu consegues acertar! 💭🧠"
-        MascotEmotion.HAPPY -> defaultPhrases[phraseIndex % defaultPhrases.size]
+    // Dynamic phrase computed efficiently via derivedStateOf
+    val emotionPhrase by remember {
+        derivedStateOf {
+            when (activeEmotion) {
+                MascotEmotion.CELEBRATING -> "FANTÁSTICO! Acertaste em cheio! PARABÉNS! 🎉🏆✨"
+                MascotEmotion.EXCITED -> "UAU! Ganhaste mais estrelas reluzentes! ⭐🚀"
+                MascotEmotion.PROUD -> "Estou super orgulhoso de ti, campeão! 👑🌟"
+                MascotEmotion.THINKING -> "Hummm... pensa bem! Tu consegues acertar! 💭🧠"
+                MascotEmotion.HAPPY -> defaultPhrases[phraseIndex % defaultPhrases.size]
+            }
+        }
+    }
+
+    val currentSpeech by remember {
+        derivedStateOf { customPhrase ?: emotionPhrase }
     }
 
     // Continuous animation for active emotions (CELEBRATING, EXCITED, THINKING)
@@ -191,32 +201,83 @@ fun ZeTraquinaMascot(
         label = "mascotScale"
     )
 
-    val currentRotation = if (isInteracting) {
-        if (interactionCount % 2 == 0) -16f else 16f
-    } else {
-        wobbleRotation
+    val currentRotation by remember {
+        derivedStateOf {
+            if (isInteracting) {
+                if (interactionCount % 2 == 0) -16f else 16f
+            } else {
+                wobbleRotation
+            }
+        }
     }
 
-    // Dynamic theme colors for active emotion
-    val borderBrush = when (activeEmotion) {
-        MascotEmotion.CELEBRATING -> Brush.sweepGradient(
-            listOf(SunshineYellow, Color(0xFFFF4081), MintGreen, SkyBluePrimary, SunshineYellow)
-        )
-        MascotEmotion.EXCITED -> Brush.linearGradient(
-            listOf(Color(0xFFFF9800), SunshineYellow, Color(0xFFFF4081))
-        )
-        MascotEmotion.PROUD -> Brush.linearGradient(
-            listOf(SunshineYellow, KidStarOrange, SunshineYellow)
-        )
-        MascotEmotion.THINKING -> Brush.linearGradient(
-            listOf(SkyBluePrimary, Color(0xFFB39DDB), SkyBluePrimary)
-        )
-        MascotEmotion.HAPPY -> Brush.sweepGradient(
-            listOf(SunshineYellow, Color(0xFFFF9800), SkyBluePrimary, SunshineYellow)
-        )
+    // Dynamic theme colors derived efficiently without re-allocating Brushes
+    val borderBrush by remember {
+        derivedStateOf {
+            when (activeEmotion) {
+                MascotEmotion.CELEBRATING -> Brush.sweepGradient(
+                    listOf(SunshineYellow, Color(0xFFFF4081), MintGreen, SkyBluePrimary, SunshineYellow)
+                )
+                MascotEmotion.EXCITED -> Brush.linearGradient(
+                    listOf(Color(0xFFFF9800), SunshineYellow, Color(0xFFFF4081))
+                )
+                MascotEmotion.PROUD -> Brush.linearGradient(
+                    listOf(SunshineYellow, KidStarOrange, SunshineYellow)
+                )
+                MascotEmotion.THINKING -> Brush.linearGradient(
+                    listOf(SkyBluePrimary, Color(0xFFB39DDB), SkyBluePrimary)
+                )
+                MascotEmotion.HAPPY -> Brush.sweepGradient(
+                    listOf(SunshineYellow, Color(0xFFFF9800), SkyBluePrimary, SunshineYellow)
+                )
+            }
+        }
     }
 
-    val currentSpeech = customPhrase ?: emotionPhrase
+    val backgroundBrush by remember {
+        derivedStateOf {
+            Brush.radialGradient(
+                colors = listOf(
+                    when (activeEmotion) {
+                        MascotEmotion.CELEBRATING -> SunshineYellow
+                        MascotEmotion.EXCITED -> Color(0xFFFF80AB)
+                        MascotEmotion.PROUD -> SunshineYellow
+                        MascotEmotion.THINKING -> SkyBluePrimary.copy(alpha = 0.6f)
+                        MascotEmotion.HAPPY -> SunshineYellow
+                    },
+                    SkyBluePrimary.copy(alpha = 0.8f)
+                )
+            )
+        }
+    }
+
+    // Cached Coil ImageRequest to prevent re-instantiation and freezing during recomposition
+    val mascotImageRequest = remember(context) {
+        ImageRequest.Builder(context)
+            .data(R.drawable.img_ze_mascot)
+            .crossfade(true)
+            .build()
+    }
+
+    // Badge icon derived state
+    val badgeIcon by remember {
+        derivedStateOf {
+            when (activeEmotion) {
+                MascotEmotion.CELEBRATING -> "🏆"
+                MascotEmotion.EXCITED -> "⚡"
+                MascotEmotion.PROUD -> "👑"
+                MascotEmotion.THINKING -> "💭"
+                MascotEmotion.HAPPY -> null
+            }
+        }
+    }
+
+    // Particle visibility derived state
+    val isParticlesVisible by remember {
+        derivedStateOf {
+            showParticles || activeEmotion == MascotEmotion.CELEBRATING || activeEmotion == MascotEmotion.EXCITED
+        }
+    }
 
     Row(
         modifier = modifier.testTag("ze_traquina_mascot"),
@@ -225,23 +286,13 @@ fun ZeTraquinaMascot(
         // Mascot Container with Coil AsyncImage and Particle Overlay
         Box(
             modifier = Modifier
-                .scale(interactiveScale)
-                .rotate(currentRotation)
+                .graphicsLayer {
+                    scaleX = interactiveScale
+                    scaleY = interactiveScale
+                    rotationZ = currentRotation
+                }
                 .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            when (activeEmotion) {
-                                MascotEmotion.CELEBRATING -> SunshineYellow
-                                MascotEmotion.EXCITED -> Color(0xFFFF80AB)
-                                MascotEmotion.PROUD -> SunshineYellow
-                                MascotEmotion.THINKING -> SkyBluePrimary.copy(alpha = 0.6f)
-                                MascotEmotion.HAPPY -> SunshineYellow
-                            },
-                            SkyBluePrimary.copy(alpha = 0.8f)
-                        )
-                    )
-                )
+                .background(backgroundBrush)
                 .border(
                     width = if (activeEmotion == MascotEmotion.CELEBRATING) 4.dp else 3.dp,
                     brush = borderBrush,
@@ -274,12 +325,9 @@ fun ZeTraquinaMascot(
                 },
             contentAlignment = Alignment.Center
         ) {
-            // Local image asset displayed via Coil AsyncImage
+            // Local image asset displayed via cached Coil AsyncImage
             AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(R.drawable.img_ze_mascot)
-                    .crossfade(true)
-                    .build(),
+                model = mascotImageRequest,
                 contentDescription = "Mascote Zé Traquina",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -288,15 +336,7 @@ fun ZeTraquinaMascot(
             )
 
             // Emotion Overlay Badge Icon (Top-Right of Mascot)
-            val badgeIcon = when (activeEmotion) {
-                MascotEmotion.CELEBRATING -> "🏆"
-                MascotEmotion.EXCITED -> "⚡"
-                MascotEmotion.PROUD -> "👑"
-                MascotEmotion.THINKING -> "💭"
-                MascotEmotion.HAPPY -> null
-            }
-
-            if (badgeIcon != null) {
+            badgeIcon?.let { badge ->
                 Surface(
                     shape = CircleShape,
                     color = SunshineYellow,
@@ -306,7 +346,7 @@ fun ZeTraquinaMascot(
                         .offset(x = 2.dp, y = (-2).dp)
                 ) {
                     Text(
-                        text = badgeIcon,
+                        text = badge,
                         fontSize = (size.value * 0.28f).sp,
                         modifier = Modifier.padding(2.dp)
                     )
@@ -315,7 +355,7 @@ fun ZeTraquinaMascot(
 
             // Floating Star/Heart/Sparkle Particles State Animation
             androidx.compose.animation.AnimatedVisibility(
-                visible = showParticles || activeEmotion == MascotEmotion.CELEBRATING || activeEmotion == MascotEmotion.EXCITED,
+                visible = isParticlesVisible,
                 enter = fadeIn() + scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
                 exit = fadeOut() + scaleOut()
             ) {

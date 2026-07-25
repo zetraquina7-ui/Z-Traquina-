@@ -66,67 +66,70 @@ class MiniMaxStorytellingService(private val context: Context) {
 
                 val url = URL(urlString)
                 val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Authorization", "Bearer $apiKey")
-                conn.connectTimeout = 10000
-                conn.readTimeout = 15000
-                conn.doOutput = true
+                try {
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                    conn.connectTimeout = 10000
+                    conn.readTimeout = 15000
+                    conn.doOutput = true
 
-                val payload = JSONObject().apply {
-                    put("model", "speech-01-hd")
-                    put("text", storyContent)
-                    put("stream", true) // Request chunked streaming where supported
-                    put("voice_setting", JSONObject().apply {
-                        put("voice_id", voiceId)
-                        put("speed", 1.0)
-                        put("vol", 1.0)
-                        put("pitch", 0)
-                    })
-                    put("audio_setting", JSONObject().apply {
-                        put("sample_rate", 32000)
-                        put("bitrate", 128000)
-                        put("format", "mp3")
-                    })
-                }
-
-                conn.outputStream.use { os ->
-                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
-                }
-
-                val responseCode = conn.responseCode
-                if (responseCode == 200) {
-                    val tempAudioFile = File(context.cacheDir, "ze_traquina_story_${System.currentTimeMillis()}.mp3")
-                    val inputStream: InputStream = conn.inputStream
-                    val outputStream = FileOutputStream(tempAudioFile)
-
-                    val buffer = ByteArray(4096)
-                    var bytesRead: Int
-                    var totalRead = 0
-
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalRead += bytesRead
+                    val payload = JSONObject().apply {
+                        put("model", "speech-01-hd")
+                        put("text", storyContent)
+                        put("stream", true) // Request chunked streaming where supported
+                        put("voice_setting", JSONObject().apply {
+                            put("voice_id", voiceId)
+                            put("speed", 1.0)
+                            put("vol", 1.0)
+                            put("pitch", 0)
+                        })
+                        put("audio_setting", JSONObject().apply {
+                            put("sample_rate", 32000)
+                            put("bitrate", 128000)
+                            put("format", "mp3")
+                        })
                     }
 
-                    outputStream.flush()
-                    outputStream.close()
+                    conn.outputStream.use { os ->
+                        os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    }
 
-                    if (totalRead > 200 && tempAudioFile.exists()) {
-                        withContext(Dispatchers.Main) {
-                            _playbackState.value = StoryPlaybackState.Speaking(title, storyContent)
-                            playStoryAudio(tempAudioFile.absolutePath) {
-                                _playbackState.value = StoryPlaybackState.Idle
+                    val responseCode = conn.responseCode
+                    if (responseCode == 200) {
+                        val tempAudioFile = File(context.cacheDir, "ze_traquina_story_${System.currentTimeMillis()}.mp3")
+                        val inputStream: InputStream = conn.inputStream
+                        
+                        var totalRead = 0
+                        FileOutputStream(tempAudioFile).use { outputStream ->
+                            val buffer = ByteArray(4096)
+                            var bytesRead: Int
+
+                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                                outputStream.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
                             }
+                            outputStream.flush()
                         }
-                        return@launch
-                    }
-                }
 
-                Log.w("MiniMaxStorytelling", "API returned status $responseCode, falling back to native voice")
-                withContext(Dispatchers.Main) {
-                    _playbackState.value = StoryPlaybackState.Speaking(title, storyContent)
-                    onFallbackNativeTTS(storyContent)
+                        if (totalRead > 200 && tempAudioFile.exists()) {
+                            withContext(Dispatchers.Main) {
+                                _playbackState.value = StoryPlaybackState.Speaking(title, storyContent)
+                                playStoryAudio(tempAudioFile.absolutePath) {
+                                    _playbackState.value = StoryPlaybackState.Idle
+                                }
+                            }
+                            return@launch
+                        }
+                    }
+
+                    Log.w("MiniMaxStorytelling", "API returned status $responseCode, falling back to native voice")
+                    withContext(Dispatchers.Main) {
+                        _playbackState.value = StoryPlaybackState.Speaking(title, storyContent)
+                        onFallbackNativeTTS(storyContent)
+                    }
+                } finally {
+                    conn.disconnect()
                 }
 
             } catch (e: Exception) {
@@ -159,8 +162,10 @@ class MiniMaxStorytellingService(private val context: Context) {
                     onComplete()
                     true
                 }
-                prepare()
-                start()
+                setOnPreparedListener { 
+                    start() 
+                }
+                prepareAsync()
             }
         } catch (e: Exception) {
             Log.e("MiniMaxStorytelling", "Error playing story audio file", e)

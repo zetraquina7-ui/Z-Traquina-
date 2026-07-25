@@ -40,53 +40,57 @@ object MiniMaxTTSService {
 
                 val url = URL(urlString)
                 val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Authorization", "Bearer $apiKey")
-                conn.connectTimeout = 8000
-                conn.readTimeout = 8000
-                conn.doOutput = true
+                try {
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                    conn.connectTimeout = 8000
+                    conn.readTimeout = 8000
+                    conn.doOutput = true
 
-                val payload = JSONObject().apply {
-                    put("model", "speech-01-hd")
-                    put("text", text)
-                    put("stream", false)
-                    put("voice_setting", JSONObject().apply {
-                        put("voice_id", voiceId)
-                        put("speed", 1.0)
-                        put("vol", 1.0)
-                        put("pitch", 0)
-                    })
-                    put("audio_setting", JSONObject().apply {
-                        put("sample_rate", 32000)
-                        put("bitrate", 128000)
-                        put("format", "mp3")
-                    })
-                }
-
-                conn.outputStream.use { os ->
-                    os.write(payload.toString().toByteArray(Charsets.UTF_8))
-                }
-
-                val responseCode = conn.responseCode
-                if (responseCode == 200) {
-                    val responseBytes = conn.inputStream.readBytes()
-
-                    if (responseBytes.size > 200) {
-                        val tempAudioFile = File(context.cacheDir, "minimax_tts_temp.mp3")
-                        FileOutputStream(tempAudioFile).use { fos ->
-                            fos.write(responseBytes)
-                        }
-
-                        withContext(Dispatchers.Main) {
-                            playAudioFile(tempAudioFile.absolutePath)
-                        }
-                        return@launch
+                    val payload = JSONObject().apply {
+                        put("model", "speech-01-hd")
+                        put("text", text)
+                        put("stream", false)
+                        put("voice_setting", JSONObject().apply {
+                            put("voice_id", voiceId)
+                            put("speed", 1.0)
+                            put("vol", 1.0)
+                            put("pitch", 0)
+                        })
+                        put("audio_setting", JSONObject().apply {
+                            put("sample_rate", 32000)
+                            put("bitrate", 128000)
+                            put("format", "mp3")
+                        })
                     }
-                }
 
-                withContext(Dispatchers.Main) {
-                    onFallback()
+                    conn.outputStream.use { os ->
+                        os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                    }
+
+                    val responseCode = conn.responseCode
+                    if (responseCode == 200) {
+                        val responseBytes = conn.inputStream.readBytes()
+
+                        if (responseBytes.size > 200) {
+                            val tempAudioFile = File(context.cacheDir, "minimax_tts_temp.mp3")
+                            FileOutputStream(tempAudioFile).use { fos ->
+                                fos.write(responseBytes)
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                playAudioFile(tempAudioFile.absolutePath)
+                            }
+                            return@launch
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        onFallback()
+                    }
+                } finally {
+                    conn.disconnect()
                 }
             } catch (e: Exception) {
                 Log.e("MiniMaxTTS", "Failed to synthesize speech via MiniMax.io API", e)

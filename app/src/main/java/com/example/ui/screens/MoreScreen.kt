@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -29,11 +30,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,6 +73,7 @@ fun MoreScreen(
     var mathInput by remember { mutableStateOf("") }
     var mathError by remember { mutableStateOf(false) }
 
+
     var childNameState by remember { mutableStateOf(userProgress.childName) }
     var ageGroupState by remember { mutableStateOf(userProgress.ageGroup) }
     var timeLimitState by remember { mutableStateOf(userProgress.timeLimitMinutes) }
@@ -84,7 +89,7 @@ fun MoreScreen(
             .fillMaxSize()
             .background(Color.Transparent)
             .testTag("more_screen"),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
@@ -458,8 +463,12 @@ fun MoreScreen(
                         fontWeight = FontWeight.Bold,
                         color = SkyBluePrimary
                     )
+
+
                 }
             }
         }
     }
+
+
 }

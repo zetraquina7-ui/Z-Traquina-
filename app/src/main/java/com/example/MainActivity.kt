@@ -24,17 +24,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.UniversoBottomNavBar
 import com.example.ui.navigation.Screen
 import com.example.ui.navigation.mainNavScreens
 import com.example.ui.screens.ChatScreen
 import com.example.ui.screens.GamesScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LearnScreen
+import com.example.ui.screens.MaisScreen
 import com.example.ui.screens.MediaScreen
 import com.example.ui.screens.MoreScreen
+import com.example.ui.screens.MusicScreen
 import com.example.ui.theme.PlayfulBackgroundGradient
 import com.example.ui.theme.SkyBluePrimary
 import com.example.ui.theme.SunshineYellow
@@ -58,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppContent(viewModel: MainViewModel) {
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
+    val currentScreen = viewModel.currentScreen
 
     Box(
         modifier = Modifier
@@ -69,44 +73,13 @@ fun MainAppContent(viewModel: MainViewModel) {
             containerColor = Color.Transparent,
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                    tonalElevation = 8.dp,
-                    modifier = Modifier.testTag("bottom_nav_bar")
-                ) {
-                    mainNavScreens.forEach { screen ->
-                        val isSelected = currentScreen.route == screen.route
-
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = {
-                                currentScreen = screen
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = screen.icon,
-                                    contentDescription = screen.title
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = screen.title,
-                                    fontSize = 10.sp,
-                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                                    maxLines = 1
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = SkyBluePrimary,
-                                selectedTextColor = SkyBluePrimary,
-                                indicatorColor = SunshineYellow.copy(alpha = 0.5f),
-                                unselectedIconColor = Color.Gray,
-                                unselectedTextColor = Color.Gray
-                            ),
-                            modifier = Modifier.testTag("nav_item_${screen.route}")
-                        )
+                UniversoBottomNavBar(
+                    screens = mainNavScreens,
+                    currentScreen = currentScreen,
+                    onScreenSelected = { screen ->
+                        viewModel.navigateTo(screen)
                     }
-                }
+                )
             }
         ) { innerPadding ->
             Box(
@@ -117,13 +90,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                 when (currentScreen) {
                     Screen.Home -> HomeScreen(
                         viewModel = viewModel,
-                        onNavigate = { screen -> currentScreen = screen }
+                        onNavigate = { screen -> viewModel.navigateTo(screen) }
                     )
                     Screen.Learn -> LearnScreen(viewModel = viewModel)
+                    Screen.Music -> MusicScreen(mainViewModel = viewModel)
                     Screen.Games -> GamesScreen(mainViewModel = viewModel)
                     Screen.Media -> MediaScreen(mainViewModel = viewModel)
                     Screen.Chat -> ChatScreen(mainViewModel = viewModel)
-                    Screen.More -> MoreScreen(mainViewModel = viewModel)
+                    Screen.Parents -> MoreScreen(mainViewModel = viewModel)
+                    Screen.More -> MaisScreen(mainViewModel = viewModel)
                 }
             }
         }

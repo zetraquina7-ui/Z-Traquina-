@@ -8,11 +8,60 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.sin
 
 object AudioSynthesizer {
     private const val SAMPLE_RATE = 22050
     private var playbackJob: Job? = null
+    private var sharedAudioTrack: AudioTrack? = null
+
+    @Synchronized
+    private fun getOrCreateAudioTrack(): AudioTrack? {
+        try {
+            if (sharedAudioTrack == null || sharedAudioTrack?.state != AudioTrack.STATE_INITIALIZED) {
+                val minBufferSize = AudioTrack.getMinBufferSize(
+                    SAMPLE_RATE,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                )
+                sharedAudioTrack = AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(SAMPLE_RATE)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(Math.max(minBufferSize, 8192))
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build()
+                sharedAudioTrack?.play()
+            }
+            return sharedAudioTrack
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+    }
+
+    @Synchronized
+    fun releaseAudioTrack() {
+        try {
+            sharedAudioTrack?.stop()
+            sharedAudioTrack?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            sharedAudioTrack = null
+        }
+    }
 
     // Frequencies for C4 octave
     val NOTE_FREQUENCIES = mapOf(
@@ -26,9 +75,9 @@ object AudioSynthesizer {
         "Do2" to 523.25  // C5
     )
 
-    fun playNoteSync(freqHz: Double, durationMs: Int = 350) {
-        var audioTrack: AudioTrack? = null
+    suspend fun playNoteSync(freqHz: Double, durationMs: Int = 350) = withContext(Dispatchers.IO) {
         try {
+            val track = getOrCreateAudioTrack() ?: return@withContext
             val numSamples = (durationMs * SAMPLE_RATE) / 1000
             val sample = DoubleArray(numSamples)
             val generatedSnd = ByteArray(2 * numSamples)
@@ -49,43 +98,10 @@ object AudioSynthesizer {
                 generatedSnd[idx++] = (valInt and 0xff00 shr 8).toByte()
             }
 
-            val minBufferSize = AudioTrack.getMinBufferSize(
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
-            val bufferSize = Math.max(generatedSnd.size, minBufferSize)
-
-            audioTrack = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(SAMPLE_RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(bufferSize)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build()
-
-            audioTrack.play()
-            audioTrack.write(generatedSnd, 0, generatedSnd.size)
-            Thread.sleep((durationMs * 0.85).toLong())
+            track.write(generatedSnd, 0, generatedSnd.size)
+            delay((durationMs * 0.85).toLong())
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            try {
-                audioTrack?.stop()
-                audioTrack?.release()
-            } catch (e: Exception) {
-                // Ignore cleanup error
-            }
         }
     }
 
@@ -98,6 +114,7 @@ object AudioSynthesizer {
     fun stopMelody() {
         playbackJob?.cancel()
         playbackJob = null
+        releaseAudioTrack()
     }
 
     fun playSongMelody(songIndex: Int, loop: Boolean = false) {

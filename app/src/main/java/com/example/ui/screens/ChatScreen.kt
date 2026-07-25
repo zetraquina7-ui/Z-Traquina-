@@ -24,8 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -119,7 +119,7 @@ fun ChatScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Falar com Zé Traquina 🤖✨",
+                        text = "ZéAI 🤖✨",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 17.sp
                     )
@@ -244,7 +244,7 @@ fun ChatScreen(
                                     },
                                     modifier = Modifier.size(28.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Ouvir", tint = Color.Black)
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Ouvir", tint = Color.Black)
                                 }
                             }
                         }
@@ -270,7 +270,7 @@ fun ChatScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 90.dp),
+                .padding(bottom = 8.dp),
             tonalElevation = 4.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -311,7 +311,7 @@ fun ChatScreen(
                         .clip(CircleShape)
                         .background(SkyBluePrimary)
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Enviar", tint = Color.White)
+                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Enviar", tint = Color.White)
                 }
             }
         }

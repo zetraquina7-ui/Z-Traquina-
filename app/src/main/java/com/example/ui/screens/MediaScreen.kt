@@ -35,7 +35,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import com.example.ui.components.YouTubePlaylistPlayerComposable
+import com.example.ui.theme.KidStarOrange
 import com.example.ui.theme.SkyBluePrimary
+import com.example.ui.theme.SunshineYellow
 import com.example.viewmodel.MainViewModel
 
 @Composable
@@ -43,7 +47,7 @@ fun MediaScreen(
     mainViewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0: Músicas, 1: Educativo, 2: Brincadeiras
+    var selectedTab by remember { mutableStateOf(0) } // 0: Músicas Infantis, 1: Educativo, 2: Diversão & Mais
 
     Column(
         modifier = modifier
@@ -51,34 +55,36 @@ fun MediaScreen(
             .background(Color.Transparent)
             .testTag("videos_parent_screen")
     ) {
-        // Top Header
+        // Top Header with high zIndex
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .zIndex(9999f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
                 Text(
-                    text = "Vídeos 🎬",
-                    fontSize = 24.sp,
+                    text = "Vídeos & Músicas 🎬🎵",
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = SkyBluePrimary
                 )
                 Text(
-                    text = "Músicas, vídeos educativos e brincadeiras divertidas!",
+                    text = "Explora as playlists oficiais do Zé Traquina!",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
             }
         }
 
-        // Custom 3-Tab Switcher (Músicas, Educativo, Brincadeiras)
+        // Custom 3-Tab Switcher with child-friendly colors and high zIndex
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 2.dp),
+                .padding(horizontal = 14.dp, vertical = 2.dp)
+                .zIndex(9999f),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
@@ -87,23 +93,21 @@ fun MediaScreen(
                     .fillMaxWidth()
                     .padding(4.dp)
             ) {
-                // Tab 0: Músicas
+                // Tab 1: Músicas Infantis
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
                         .background(if (selectedTab == 0) SkyBluePrimary else Color.Transparent)
-                        .clickable {
-                            selectedTab = 0
-                        }
+                        .clickable { selectedTab = 0 }
                         .padding(vertical = 10.dp)
-                        .testTag("videos_tab_musicas"),
+                        .testTag("videos_tab_musicas_infantis"),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
-                            contentDescription = "Músicas",
+                            contentDescription = null,
                             tint = if (selectedTab == 0) Color.White else Color.Gray,
                             modifier = Modifier.size(16.dp)
                         )
@@ -111,21 +115,19 @@ fun MediaScreen(
                         Text(
                             text = "Músicas 🎵",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = if (selectedTab == 0) Color.White else Color.Gray
                         )
                     }
                 }
 
-                // Tab 1: Educativo
+                // Tab 2: Educativo
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (selectedTab == 1) SkyBluePrimary else Color.Transparent)
-                        .clickable {
-                            selectedTab = 1
-                        }
+                        .background(if (selectedTab == 1) SunshineYellow else Color.Transparent)
+                        .clickable { selectedTab = 1 }
                         .padding(vertical = 10.dp)
                         .testTag("videos_tab_educativo"),
                     contentAlignment = Alignment.Center
@@ -133,45 +135,43 @@ fun MediaScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Educativo",
-                            tint = if (selectedTab == 1) Color.White else Color.Gray,
+                            contentDescription = null,
+                            tint = if (selectedTab == 1) Color.Black else Color.Gray,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Educativo 📚",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = if (selectedTab == 1) Color.White else Color.Gray
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 1) Color.Black else Color.Gray
                         )
                     }
                 }
 
-                // Tab 2: Brincadeiras
+                // Tab 3: Diversão & Mais
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (selectedTab == 2) SkyBluePrimary else Color.Transparent)
-                        .clickable {
-                            selectedTab = 2
-                        }
+                        .background(if (selectedTab == 2) KidStarOrange else Color.Transparent)
+                        .clickable { selectedTab = 2 }
                         .padding(vertical = 10.dp)
-                        .testTag("videos_tab_brincadeiras"),
+                        .testTag("videos_tab_diversao"),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.EmojiEmotions,
-                            contentDescription = "Brincadeiras",
+                            contentDescription = null,
                             tint = if (selectedTab == 2) Color.White else Color.Gray,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Brincadeiras 🎈",
+                            text = "Diversão ⭐",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = if (selectedTab == 2) Color.White else Color.Gray
                         )
                     }
@@ -179,15 +179,26 @@ fun MediaScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Submenu Content View
-        Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                0 -> MusicScreen(mainViewModel = mainViewModel)
-                1 -> VideosScreen(mainViewModel = mainViewModel, categoryFilter = "educativo")
-                2 -> VideosScreen(mainViewModel = mainViewModel, categoryFilter = "brincadeiras")
+        // Active Playlist Iframe Player via youtube-nocookie.com
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+                .zIndex(1f)
+        ) {
+            val currentEmbedUrl = when (selectedTab) {
+                0 -> "https://www.youtube-nocookie.com/embed/videoseries?list=PLHz1Xt0IaQWM"
+                1 -> "https://www.youtube-nocookie.com/embed/videoseries?list=PLT7ZV5QsDKA4"
+                else -> "https://www.youtube-nocookie.com/embed/videoseries?list=PLHXyMYX6Yxxc"
             }
+
+            YouTubePlaylistPlayerComposable(
+                embedUrl = currentEmbedUrl,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
