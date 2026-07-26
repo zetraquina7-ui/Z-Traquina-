@@ -254,7 +254,7 @@ fun ZeTraquinaMascot(
     // Cached Coil ImageRequest to prevent re-instantiation and freezing during recomposition
     val mascotImageRequest = remember(context) {
         ImageRequest.Builder(context)
-            .data(R.drawable.img_ze_mascot)
+            .data(R.drawable.img_app_icon_1785061192574)
             .crossfade(true)
             .build()
     }

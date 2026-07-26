@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+
 import androidx.compose.foundation.lazy.LazyColumn
 import com.example.ui.components.AudioPlayerBarComposable
 import androidx.compose.animation.core.Spring
@@ -37,38 +38,39 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.MaterialTheme
+import com.example.ui.components.MascotEmotion
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.OndemandVideo
+import androidx.compose.ui.graphics.vector.ImageVector
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.School
-import androidx.compose.runtime.mutableIntStateOf
-import coil.request.ImageRequest
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.OndemandVideo
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VolumeMute
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,24 +79,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.zIndex
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.R
-import com.example.ui.components.MascotEmotion
 import com.example.ui.components.ZeTraquinaMascot
 import com.example.ui.navigation.Screen
 import com.example.ui.theme.KidStarOrange
@@ -102,6 +98,29 @@ import com.example.ui.theme.MintGreen
 import com.example.ui.theme.SkyBluePrimary
 import com.example.ui.theme.SunshineYellow
 import com.example.viewmodel.MainViewModel
+import kotlinx.coroutines.delay
+
+
+
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+
+import androidx.compose.material.icons.filled.Help
+
+data class ZeBalloonTip(
+    val category: String,
+    val badgeLabel: String,
+    val icon: ImageVector,
+    val badgeBgColor: Color,
+    val badgeTextColor: Color,
+    val text: String,
+    val answer: String? = null,
+    val emotion: MascotEmotion = MascotEmotion.HAPPY
+)
 
 @Composable
 fun HomeScreen(
@@ -112,53 +131,272 @@ fun HomeScreen(
     val userProgress by viewModel.userProgress.collectAsState()
     var isAudioPlaying by remember { mutableStateOf(false) }
 
-    // Conditional derived state for mascot emotion to prevent freezing / re-rendering on unneeded state changes
-    val mascotEmotion by remember {
-        derivedStateOf {
-            if (userProgress.starsCount >= 50) MascotEmotion.PROUD else MascotEmotion.HAPPY
-        }
-    }
-
-    // Floating Zé Traquina tips state
-    val zeTips = remember {
+    // Rich categorized full-time Zé Traquina balloon tips (Interleaved round-robin: Dica -> Conselho -> Sabias que -> Adivinha -> Anedota -> Desafio)
+    val allZeTips = remember {
         listOf(
-            "Sabias que podes jogar o Jogo da Memória na aba Jogos? 🧠",
-            "Vem aprender os números e o ABC na aba Aprender! 🅰️1️⃣",
-            "Ouve as canções super divertidas na aba Música! 🎵",
-            "Ganha estrelas douradas completando os desafios! ⭐🏆",
-            "Assiste aos vídeos do Zé Traquina na aba Vídeos! 🎥",
-            "Clica no meu avatar para ouvires frases especiais! 🗣️✨"
+            // --- ROUND 1 ---
+            ZeBalloonTip(
+                category = "Dicas",
+                badgeLabel = "DICA DO ZÉ 💡",
+                icon = Icons.Default.Lightbulb,
+                badgeBgColor = Color(0xFFFFECE0),
+                badgeTextColor = Color(0xFFE65100),
+                text = "Lava bem as mãos com água e sabão antes de comer para afastar os micróbios! 🧼",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Conselhos",
+                badgeLabel = "CONSELHO DO ZÉ 🌟",
+                icon = Icons.Default.Star,
+                badgeBgColor = Color(0xFFF3E8FF),
+                badgeTextColor = Color(0xFF7C4DFF),
+                text = "Partilha os teus brinquedos com os teus amigos! Brincar juntos é muito mais divertido! 🤝❤️",
+                emotion = MascotEmotion.PROUD
+            ),
+            ZeBalloonTip(
+                category = "Sabias que?",
+                badgeLabel = "SABIAS QUE? ❓",
+                icon = Icons.Default.AutoAwesome,
+                badgeBgColor = Color(0xFFE0F2FE),
+                badgeTextColor = Color(0xFF0288D1),
+                text = "Sabias que as borboletas provam a comida usando as suas patinhas? 🦋🦶",
+                emotion = MascotEmotion.EXCITED
+            ),
+            ZeBalloonTip(
+                category = "Adivinhas",
+                badgeLabel = "ADIVINHA DO ZÉ 🧩",
+                icon = Icons.Default.SmartToy,
+                badgeBgColor = Color(0xFFFCE4EC),
+                badgeTextColor = Color(0xFFD81B60),
+                text = "Tem capas mas não é herói, tem folhas mas não é árvore. O que é?",
+                answer = "O Livro! 📖✨",
+                emotion = MascotEmotion.THINKING
+            ),
+            ZeBalloonTip(
+                category = "Anedotas",
+                badgeLabel = "ANEDOTA DO ZÉ 😄",
+                icon = Icons.Default.Face,
+                badgeBgColor = Color(0xFFFFF8E1),
+                badgeTextColor = Color(0xFFF57F17),
+                text = "O que diz um zero para o oito?",
+                answer = "Que cinto bonito! ⭕8️⃣",
+                emotion = MascotEmotion.CELEBRATING
+            ),
+            ZeBalloonTip(
+                category = "Desafios",
+                badgeLabel = "DESAFIO DO ZÉ 🏆",
+                icon = Icons.Default.Favorite,
+                badgeBgColor = Color(0xFFE8F5E9),
+                badgeTextColor = Color(0xFF2E7D32),
+                text = "Consegues dar 5 pulinhos no mesmo pé sem perder o equilíbrio? Experimenta! 🦘⭐",
+                emotion = MascotEmotion.CELEBRATING
+            ),
+
+            // --- ROUND 2 ---
+            ZeBalloonTip(
+                category = "Dicas",
+                badgeLabel = "DICA DO ZÉ 💡",
+                icon = Icons.Default.Lightbulb,
+                badgeBgColor = Color(0xFFFFECE0),
+                badgeTextColor = Color(0xFFE65100),
+                text = "Pede 'por favor' e diz 'obrigado', são palavras mágicas que espalham sorrisos! ✨😊",
+                emotion = MascotEmotion.PROUD
+            ),
+            ZeBalloonTip(
+                category = "Conselhos",
+                badgeLabel = "CONSELHO DO ZÉ 🌟",
+                icon = Icons.Default.Star,
+                badgeBgColor = Color(0xFFF3E8FF),
+                badgeTextColor = Color(0xFF7C4DFF),
+                text = "Quando te sentires chateado ou cansado, respira fundo 3 vezes e conta até 10! 🌬️🧘",
+                emotion = MascotEmotion.THINKING
+            ),
+            ZeBalloonTip(
+                category = "Sabias que?",
+                badgeLabel = "SABIAS QUE? ❓",
+                icon = Icons.Default.AutoAwesome,
+                badgeBgColor = Color(0xFFE0F2FE),
+                badgeTextColor = Color(0xFF0288D1),
+                text = "Sabias que os golfinhos dormem com um olho aberto para vigiar o oceano? 🐬👁️",
+                emotion = MascotEmotion.THINKING
+            ),
+            ZeBalloonTip(
+                category = "Adivinhas",
+                badgeLabel = "ADIVINHA DO ZÉ 🧩",
+                icon = Icons.Default.SmartToy,
+                badgeBgColor = Color(0xFFFCE4EC),
+                badgeTextColor = Color(0xFFD81B60),
+                text = "Qual é a coisa qual é ela que cai em pé e corre deitada?",
+                answer = "A Chuva! 🌧️💧",
+                emotion = MascotEmotion.EXCITED
+            ),
+            ZeBalloonTip(
+                category = "Anedotas",
+                badgeLabel = "ANEDOTA DO ZÉ 😄",
+                icon = Icons.Default.Face,
+                badgeBgColor = Color(0xFFFFF8E1),
+                badgeTextColor = Color(0xFFF57F17),
+                text = "Porque é que os peixes não usam computador?",
+                answer = "Porque têm medo da rede! 🐟💻",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Desafios",
+                badgeLabel = "DESAFIO DO ZÉ 🏆",
+                icon = Icons.Default.Favorite,
+                badgeBgColor = Color(0xFFE8F5E9),
+                badgeTextColor = Color(0xFF2E7D32),
+                text = "Tenta dizer super rápido sem te enganares: 'O rato roeu a rolha do rei de Roma'! 🐭👑",
+                emotion = MascotEmotion.EXCITED
+            ),
+
+            // --- ROUND 3 ---
+            ZeBalloonTip(
+                category = "Dicas",
+                badgeLabel = "DICA DO ZÉ 💡",
+                icon = Icons.Default.Lightbulb,
+                badgeBgColor = Color(0xFFFFECE0),
+                badgeTextColor = Color(0xFFE65100),
+                text = "Arruma os teus brinquedos depois de brincar. O teu quarto vai ficar incrível! 🧸📦",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Conselhos",
+                badgeLabel = "CONSELHO DO ZÉ 🌟",
+                icon = Icons.Default.Star,
+                badgeBgColor = Color(0xFFF3E8FF),
+                badgeTextColor = Color(0xFF7C4DFF),
+                text = "Se não souberes fazer alguma coisa, pergunta sem medo! Aprender é fantástico! 🙋‍♂️💡",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Sabias que?",
+                badgeLabel = "SABIAS QUE? ❓",
+                icon = Icons.Default.AutoAwesome,
+                badgeBgColor = Color(0xFFE0F2FE),
+                badgeTextColor = Color(0xFF0288D1),
+                text = "Sabias que a baleia-azul tem um coração gigante do tamanho de um carro pequeno? 🐋🚗",
+                emotion = MascotEmotion.CELEBRATING
+            ),
+            ZeBalloonTip(
+                category = "Adivinhas",
+                badgeLabel = "ADIVINHA DO ZÉ 🧩",
+                icon = Icons.Default.SmartToy,
+                badgeBgColor = Color(0xFFFCE4EC),
+                badgeTextColor = Color(0xFFD81B60),
+                text = "Tenho dentes mas não mordo, sirvo para pentear o cabelo. Quem sou?",
+                answer = "O Pente! 🪮",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Anedotas",
+                badgeLabel = "ANEDOTA DO ZÉ 😄",
+                icon = Icons.Default.Face,
+                badgeBgColor = Color(0xFFFFF8E1),
+                badgeTextColor = Color(0xFFF57F17),
+                text = "O que é que a lâmpada disse quando se apagou?",
+                answer = "Estou de noites! 💡🌙",
+                emotion = MascotEmotion.CELEBRATING
+            ),
+            ZeBalloonTip(
+                category = "Desafios",
+                badgeLabel = "DESAFIO DO ZÉ 🏆",
+                icon = Icons.Default.Favorite,
+                badgeBgColor = Color(0xFFE8F5E9),
+                badgeTextColor = Color(0xFF2E7D32),
+                text = "Procura 3 coisas de cor vermelha ou azul à tua volta agora mesmo! 🔴🔵🔍",
+                emotion = MascotEmotion.THINKING
+            ),
+
+            // --- ROUND 4 ---
+            ZeBalloonTip(
+                category = "Dicas",
+                badgeLabel = "DICA DO ZÉ 💡",
+                icon = Icons.Default.Lightbulb,
+                badgeBgColor = Color(0xFFFFECE0),
+                badgeTextColor = Color(0xFFE65100),
+                text = "Bebe água fresquinha ao longo do dia para ficares super forte e saudável! 💧🥤",
+                emotion = MascotEmotion.EXCITED
+            ),
+            ZeBalloonTip(
+                category = "Conselhos",
+                badgeLabel = "CONSELHO DO ZÉ 🌟",
+                icon = Icons.Default.Star,
+                badgeBgColor = Color(0xFFF3E8FF),
+                badgeTextColor = Color(0xFF7C4DFF),
+                text = "Dorme cedo para sonhares com aventuras incríveis no Espaço Mágico! 🌙🚀",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Sabias que?",
+                badgeLabel = "SABIAS QUE? ❓",
+                icon = Icons.Default.AutoAwesome,
+                badgeBgColor = Color(0xFFE0F2FE),
+                badgeTextColor = Color(0xFF0288D1),
+                text = "Sabias que os gatos conseguem emitir mais de 100 sons diferentes? 🐱🎵",
+                emotion = MascotEmotion.HAPPY
+            ),
+            ZeBalloonTip(
+                category = "Adivinhas",
+                badgeLabel = "ADIVINHA DO ZÉ 🧩",
+                icon = Icons.Default.SmartToy,
+                badgeBgColor = Color(0xFFFCE4EC),
+                badgeTextColor = Color(0xFFD81B60),
+                text = "Qual é o animal que anda sempre com a casa às costas?",
+                answer = "O Caracol! 🐚🐌",
+                emotion = MascotEmotion.PROUD
+            ),
+            ZeBalloonTip(
+                category = "Anedotas",
+                badgeLabel = "ANEDOTA DO ZÉ 😄",
+                icon = Icons.Default.Face,
+                badgeBgColor = Color(0xFFFFF8E1),
+                badgeTextColor = Color(0xFFF57F17),
+                text = "Dois gatos estavam a fazer uma corrida. Quem ganhou?",
+                answer = "O gato 'Miau-to' rápido! 🐱🏎️",
+                emotion = MascotEmotion.PROUD
+            ),
+            ZeBalloonTip(
+                category = "Desafios",
+                badgeLabel = "DESAFIO DO ZÉ 🏆",
+                icon = Icons.Default.Favorite,
+                badgeBgColor = Color(0xFFE8F5E9),
+                badgeTextColor = Color(0xFF2E7D32),
+                text = "Dá um abraço bem apertado a quem estiver perto de ti hoje! 🤗💖",
+                emotion = MascotEmotion.PROUD
+            )
         )
     }
-    var currentTipIndex by remember { mutableIntStateOf(0) }
-    var isTipVisible by remember { mutableStateOf(false) }
 
-    // Periodic tip trigger effect
-    LaunchedEffect(Unit) {
-        delay(2500L) // Wait 2.5 seconds after screen loads
+    var currentTipIndex by remember { mutableIntStateOf(0) }
+
+    val activeTip = remember(currentTipIndex, allZeTips) {
+        allZeTips[currentTipIndex % allZeTips.size]
+    }
+
+    // Continuous auto-rotation for the full-time balloon
+    LaunchedEffect(allZeTips.size) {
         while (true) {
-            isTipVisible = true
-            delay(7000L) // Display tip for 7 seconds
-            isTipVisible = false
-            delay(11000L) // Wait 11 seconds before showing next tip
-            currentTipIndex = (currentTipIndex + 1) % zeTips.size
+            delay(8000L) // Rotates every 8 seconds continuously
+            currentTipIndex = (currentTipIndex + 1) % allZeTips.size
         }
     }
 
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        LazyColumn(
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 100.dp),
+        Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .padding(bottom = 90.dp) // Extra padding for bottom nav
                 .background(Color.Transparent)
                 .testTag("home_screen"),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        // --- Hero Banner Image (YouTube Channel Header Style) ---
-        item(key = "hero_banner") {
+            // --- Hero Banner Image ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -173,84 +411,18 @@ fun HomeScreen(
                     contentScale = ContentScale.Crop
                 )
             }
-        }
 
-        // --- 2. Mascot Interactive Card ---
-        item(key = "mascot_card") {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("mascot_home_card"),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    ZeTraquinaMascot(
-                        size = 42.dp,
-                        showSpeechBubble = false,
-                        emotion = mascotEmotion,
-                        triggerEmotionKey = userProgress.starsCount,
-                        onInteract = {
-                            viewModel.speak("Olá amiguinhos! Tens ${userProgress.starsCount} estrelas reluzentes!")
-                            viewModel.addStars(1)
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Olá! Vamos aprender?",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "Toque no Zé ou converse com a ZéAI!",
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFF4081),
-                        modifier = Modifier.clickable { onNavigate(Screen.Chat) }
-                    ) {
-                        Text(
-                            text = "ZéAI 💬",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // --- 4. Quick Menu Section (2x2 Grid) ---
-        item(key = "quick_menu") {
+            // --- Quick Menu Section (2x2 Grid) ---
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "O que vamos fazer hoje? 🚀",
+                    text = "O que vamos fazer hoje? ✨ 🚀",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 2.dp)
                 )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -282,7 +454,7 @@ fun HomeScreen(
                         title = "Vídeos",
                         subtitle = "Músicas, Desenhos e Histórias",
                         icon = Icons.Default.OndemandVideo,
-                        bgColor = Color(0xFFF59E0B), // Rich golden yellow
+                        bgColor = Color(0xFFF59E0B),
                         testTag = "home_quick_media",
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigate(Screen.Media) }
@@ -291,17 +463,15 @@ fun HomeScreen(
                         title = "ZéAI",
                         subtitle = "Falar com o Zé Traquina",
                         icon = Icons.Default.Face,
-                        bgColor = Color(0xFFE53935), // Red
+                        bgColor = Color(0xFFE53935),
                         testTag = "home_quick_chat",
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigate(Screen.Chat) }
                     )
                 }
             }
-        }
 
-        // --- 5. Destaques de Aprendizado do Dia ---
-        item(key = "highlights") {
+            // --- 5. Destaques de Aprendizado do Dia ---
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -322,7 +492,7 @@ fun HomeScreen(
                         text = "Toque para ouvir 🔊",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SkyBluePrimary
+                        color = Color.Gray
                     )
                 }
 
@@ -331,282 +501,223 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     HighlightCard(
-                        category = "LETRA",
-                        symbol = "A",
-                        emoji = "🐝",
-                        title = "Abelha",
-                        badgeColor = SkyBluePrimary,
-                        containerColor = Color(0xFFE0F2FE),
-                        testTag = "highlight_card_letter",
+                        category = "Matemática",
+                        symbol = "123",
+                        emoji = "🔢",
+                        title = "Contar",
+                        badgeColor = KidStarOrange,
+                        containerColor = Color(0xFFFFF7E6),
+                        testTag = "home_highlight_math",
                         modifier = Modifier.weight(1f),
-                        onClick = { viewModel.speak("Letra A de Abelha!") }
+                        onClick = { onNavigate(Screen.Learn) }
                     )
 
                     HighlightCard(
-                        category = "NÚMERO",
-                        symbol = "5",
-                        emoji = "⭐",
-                        title = "Estrelas",
-                        badgeColor = Color(0xFFFF4081),
-                        containerColor = Color(0xFFFCE4EC),
-                        testTag = "highlight_card_number",
+                        category = "Letras",
+                        symbol = "ABC",
+                        emoji = "📚",
+                        title = "Alfabeto",
+                        badgeColor = SkyBluePrimary,
+                        containerColor = Color(0xFFF0F9FF),
+                        testTag = "home_highlight_letters",
                         modifier = Modifier.weight(1f),
-                        onClick = { viewModel.speak("Número 5! Cinco estrelinhas reluzentes!") }
+                        onClick = { onNavigate(Screen.Learn) }
                     )
                 }
 
-
+                Text(
+                    text = "Aprender, brincar e cantar juntos!",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
             }
-        }
 
-        // --- 3. Música do Dia Compact Audio Player Bar ---
-        item(key = "audio_player") {
-            AudioPlayerBarComposable(
-                isPlayingState = isAudioPlaying,
-                onPlayStateChanged = { playing ->
-                    isAudioPlaying = playing
-                    if (playing) {
-                        viewModel.addStars(2)
-                        viewModel.speak("A tocar a música oficial: Zé Traquina é fixe!")
-                    }
+            // --- Full-Time Zé Traquina Speech Balloon (Only the balloon at the bottom) ---
+            FullTimeZeBalloonCard(
+                activeTip = activeTip,
+                onNextTip = {
+                    currentTipIndex = (currentTipIndex + 1) % allZeTips.size
+                },
+                onSpeak = { textToSpeak ->
+                    val cleanText = textToSpeak.replace(Regex("[^A-Za-zÀ-ÖØ-öø-ÿ0-9,?!. ]"), "")
+                    viewModel.speak(cleanText)
                 }
             )
         }
-
-        // --- 6. Bottom Tagline ---
-        item(key = "bottom_tagline") {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = KidStarOrange,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Aprender, brincar e cantar juntos! ✨",
-                    color = Color.Black.copy(alpha = 0.8f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-        }
     }
-
-        // Floating Tip at the bottom of the screen
-        FloatingZeTipBubble(
-            tipText = zeTips[currentTipIndex],
-            isVisible = isTipVisible,
-            onDismiss = { isTipVisible = false },
-            onClick = {
-                val tip = zeTips[currentTipIndex]
-                viewModel.speak(tip)
-                viewModel.addStars(1)
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .zIndex(10f)
-        )
-}
 }
 
 @Composable
-fun QuickMenuCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    bgColor: Color,
-    testTag: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+fun FullTimeZeBalloonCard(
+    activeTip: ZeBalloonTip,
+    onNextTip: () -> Unit,
+    onSpeak: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val cardScale by animateFloatAsState(
-        targetValue = if (isPressed) 1.06f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "quickMenuCardScale"
-    )
+    var isAnswerRevealed by remember(activeTip) { mutableStateOf(false) }
 
     Card(
         modifier = modifier
-            .height(102.dp)
-            .graphicsLayer {
-                scaleX = cardScale
-                scaleY = cardScale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .testTag(testTag),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isPressed) 8.dp else 3.dp
-        )
+            .fillMaxWidth()
+            .testTag("ze_balloon_card"),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = SunshineYellow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        border = BorderStroke(2.5.dp, MintGreen)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    color = Color.White.copy(alpha = 0.95f),
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                    maxLines = 2
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun FloatingZeTipBubble(
-    tipText: String,
-    isVisible: Boolean,
-    onDismiss: () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val mascotImageRequest = remember(context) {
-        ImageRequest.Builder(context)
-            .data(R.drawable.img_ze_mascot)
-            .crossfade(true)
-            .build()
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn() + scaleIn(initialScale = 0.8f),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut() + scaleOut(targetScale = 0.8f),
-        modifier = modifier
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .clickable { onClick() }
-                .testTag("floating_ze_tip_bubble"),
-            shape = RoundedCornerShape(24.dp),
-            color = SunshineYellow,
-            shadowElevation = 8.dp,
-            border = BorderStroke(3.dp, MintGreen)
+                .fillMaxWidth()
+                .padding(12.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Mascot 3D Avatar Badge
-                Surface(
-                    shape = CircleShape,
-                    color = SkyBluePrimary,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .border(2.dp, Color.White, CircleShape)
-                ) {
-                    AsyncImage(
-                        model = mascotImageRequest,
-                        contentDescription = "Dica do Zé Traquina",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                // Mascot Avatar with real-time emotion
+                ZeTraquinaMascot(
+                    size = 50.dp,
+                    showSpeechBubble = false,
+                    emotion = if (isAnswerRevealed) MascotEmotion.CELEBRATING else activeTip.emotion,
+                    triggerEmotionKey = activeTip.text + isAnswerRevealed,
+                    onInteract = {
+                        val speechText = if (activeTip.answer != null) {
+                            if (isAnswerRevealed) "${activeTip.text} A resposta é: ${activeTip.answer}" else activeTip.text
+                        } else activeTip.text
+                        onSpeak(speechText)
+                    }
+                )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Speech Content
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                // Speech Content & Badge
+                Column(modifier = Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Lightbulb,
-                            contentDescription = null,
-                            tint = Color(0xFFE65100),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "Dica do Zé!",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFE65100)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = activeTip.badgeBgColor
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = activeTip.icon,
+                                    contentDescription = null,
+                                    tint = activeTip.badgeTextColor,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = activeTip.badgeLabel,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = activeTip.badgeTextColor
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = "Ouvir dica",
-                            tint = Color(0xFF0D47A1),
-                            modifier = Modifier.size(13.dp)
-                        )
+
+                        IconButton(
+                            onClick = {
+                                val speechText = if (activeTip.answer != null) {
+                                    if (isAnswerRevealed) "${activeTip.text} A resposta é: ${activeTip.answer}" else activeTip.text
+                                } else activeTip.text
+                                onSpeak(speechText)
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = "Ouvir o Zé Traquina",
+                                tint = Color(0xFF0D47A1),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
-                        text = tipText,
-                        fontSize = 12.sp,
+                        text = activeTip.text,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0D47A1),
-                        maxLines = 2
+                        color = Color(0xFF1E293B),
+                        lineHeight = 17.sp
                     )
+
+                    if (activeTip.answer != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        if (isAnswerRevealed) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color.White,
+                                border = BorderStroke(1.5.dp, Color(0xFFD81B60).copy(alpha = 0.5f))
+                            ) {
+                                Text(
+                                    text = "👉 Resposta: ${activeTip.answer}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFD81B60),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFD81B60),
+                                modifier = Modifier.clickable {
+                                    isAnswerRevealed = true
+                                    val speechText = "${activeTip.text} A resposta é: ${activeTip.answer}"
+                                    onSpeak(speechText)
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Help,
+                                        contentDescription = "Ver Resposta",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "🔍 Ver Resposta!",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // Close Button
+                // "Outra Dica / Próxima" Button
                 IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(26.dp)
+                    onClick = {
+                        isAnswerRevealed = false
+                        onNextTip()
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.8f))
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Fechar Dica",
-                        tint = Color.Black.copy(alpha = 0.6f),
-                        modifier = Modifier.size(16.dp)
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Nova Dica",
+                        tint = Color(0xFF1E293B),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -628,7 +739,6 @@ fun HighlightCard(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1.0f,
         animationSpec = spring(
@@ -725,4 +835,62 @@ fun HighlightCard(
     }
 }
 
-
+@Composable
+fun QuickMenuCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    bgColor: Color,
+    testTag: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(86.dp)
+            .clickable { onClick() }
+            .testTag(testTag),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.25f),
+                modifier = Modifier.size(38.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 2
+                )
+                    }
+    }
+}}

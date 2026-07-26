@@ -38,7 +38,6 @@ import com.example.ui.screens.LearnScreen
 import com.example.ui.screens.MaisScreen
 import com.example.ui.screens.MediaScreen
 import com.example.ui.screens.MoreScreen
-import com.example.ui.screens.MusicScreen
 import com.example.ui.theme.PlayfulBackgroundGradient
 import com.example.ui.theme.SkyBluePrimary
 import com.example.ui.theme.SunshineYellow
@@ -93,7 +92,6 @@ fun MainAppContent(viewModel: MainViewModel) {
                         onNavigate = { screen -> viewModel.navigateTo(screen) }
                     )
                     Screen.Learn -> LearnScreen(viewModel = viewModel)
-                    Screen.Music -> MusicScreen(mainViewModel = viewModel)
                     Screen.Games -> GamesScreen(mainViewModel = viewModel)
                     Screen.Media -> MediaScreen(mainViewModel = viewModel)
                     Screen.Chat -> ChatScreen(mainViewModel = viewModel)

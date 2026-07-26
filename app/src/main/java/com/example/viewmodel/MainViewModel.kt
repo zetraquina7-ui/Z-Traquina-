@@ -28,7 +28,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun navigateTo(screen: Screen) {
-        currentScreen = screen
+        try {
+            currentScreen = screen
+        } catch (e: Exception) {
+            e.printStackTrace()
+            currentScreen = Screen.Home
+        }
     }
 
     val storyPlaybackState: StateFlow<StoryPlaybackState> = storytellingService.playbackState

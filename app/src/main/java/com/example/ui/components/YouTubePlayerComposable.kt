@@ -55,97 +55,90 @@ fun openYouTubeVideoExternal(context: Context, videoId: String) {
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun YouTubePlayerComposable(
-    youtubeId: String,
+    youtubeId: String? = null,
+    playlistId: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var isLoading by remember(youtubeId) { mutableStateOf(true) }
-    val safeVideoId = if (youtubeId.isBlank()) "jYYvwC3L2kI" else youtubeId
+    var isLoading by remember(youtubeId, playlistId) { mutableStateOf(true) }
 
-    val htmlData = remember(safeVideoId) {
+    val resolvedUrl = remember(youtubeId, playlistId) {
+        when {
+            !youtubeId.isNullOrBlank() && !playlistId.isNullOrBlank() ->
+                "https://www.youtube.com/embed/$youtubeId?list=$playlistId&autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1"
+            !youtubeId.isNullOrBlank() ->
+                "https://www.youtube.com/embed/$youtubeId?autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1"
+            !playlistId.isNullOrBlank() ->
+                "https://www.youtube.com/embed/videoseries?list=$playlistId&autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1"
+            else ->
+                "https://www.youtube.com/embed/videoseries?list=PLHz1Xt0IaQWM&autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1"
+        }
+    }
+
+    val htmlData = remember(resolvedUrl) {
         """
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
-                body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000000; overflow: hidden; }
-                #player { width: 100%; height: 100%; }
+                body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0F172A; overflow: hidden; }
+                iframe { width: 100%; height: 100%; border: none; }
             </style>
         </head>
         <body>
-            <div id="player"></div>
-            <script>
-                var tag = document.createElement('script');
-                tag.src = "https://www.youtube-nocookie.com/iframe_api";
-                var firstScriptTag = document.getElementsByTagName('script')[0];
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-                var player;
-                function onYouTubeIframeAPIReady() {
-                    player = new YT.Player('player', {
-                        height: '100%',
-                        width: '100%',
-                        videoId: '$safeVideoId',
-                        host: 'https://www.youtube-nocookie.com',
-                        playerVars: {
-                            'playsinline': 1,
-                            'autoplay': 1,
-                            'rel': 0,
-                            'modestbranding': 1,
-                            'origin': 'https://www.youtube-nocookie.com'
-                        },
-                        events: {
-                            'onReady': function(event) {
-                                event.target.playVideo();
-                            }
-                        }
-                    });
-                }
-            </script>
+            <iframe 
+                src="$resolvedUrl" 
+                frameborder="0" 
+                width="100%" 
+                height="100%"
+                allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope; fullscreen"
+                allowfullscreen>
+            </iframe>
         </body>
         </html>
         """.trimIndent()
     }
 
-    LaunchedEffect(safeVideoId) {
+    LaunchedEffect(resolvedUrl) {
         isLoading = true
-        delay(1500)
+        delay(600)
         isLoading = false
     }
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black),
+            .background(Color(0xFF0F172A)),
         contentAlignment = Alignment.Center
     ) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 WebView(ctx).apply {
+                    setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    setBackgroundColor(android.graphics.Color.BLACK)
+                    setBackgroundColor(android.graphics.Color.parseColor("#0F172A"))
 
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
-                        databaseEnabled = true
                         mediaPlaybackRequiresUserGesture = false
                         loadWithOverviewMode = true
                         useWideViewPort = true
                         allowFileAccess = true
                         allowContentAccess = true
                         mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
                     }
                     webChromeClient = WebChromeClient()
                     webViewClient = WebViewClient()
-                    tag = safeVideoId
+                    tag = resolvedUrl
                     loadDataWithBaseURL(
-                        "https://www.youtube-nocookie.com",
+                        "https://www.youtube.com",
                         htmlData,
                         "text/html",
                         "UTF-8",
@@ -154,10 +147,10 @@ fun YouTubePlayerComposable(
                 }
             },
             update = { webView ->
-                if (webView.tag != safeVideoId) {
-                    webView.tag = safeVideoId
+                if (webView.tag != resolvedUrl) {
+                    webView.tag = resolvedUrl
                     webView.loadDataWithBaseURL(
-                        "https://www.youtube-nocookie.com",
+                        "https://www.youtube.com",
                         htmlData,
                         "text/html",
                         "UTF-8",
@@ -172,7 +165,7 @@ fun YouTubePlayerComposable(
                     (webView.parent as? ViewGroup)?.removeView(webView)
                     webView.destroy()
                 } catch (e: Exception) {
-                    Log.e("YouTubeWebView", "Error releasing webview", e)
+                    Log.e("YouTubePlayer", "Error releasing webview", e)
                 }
             }
         )

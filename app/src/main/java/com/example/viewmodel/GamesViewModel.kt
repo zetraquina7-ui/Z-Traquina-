@@ -3,16 +3,19 @@ package com.example.viewmodel
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class MemoryCard(
     val id: Int,
     val icon: String, // Emoji representation
     val label: String,
-    var isFlipped: Boolean = false,
-    var isMatched: Boolean = false
+    val isFlipped: Boolean = false,
+    val isMatched: Boolean = false
 )
 
 data class DrawingStroke(
@@ -67,8 +70,19 @@ class GamesViewModel : ViewModel() {
         val cards = mutableListOf<MemoryCard>()
         var cardId = 0
         selected.forEach { emoji ->
-            cards.add(MemoryCard(id = cardId++, icon = emoji, label = emoji))
-            cards.add(MemoryCard(id = cardId++, icon = emoji, label = emoji))
+            val emojiLabel = when (emoji) {
+                "🐶" -> "Cãozinho"
+                "🐱" -> "Gatinho"
+                "🦁" -> "Leão"
+                "🐸" -> "Sapo"
+                "🍎" -> "Maçã"
+                "🚀" -> "Foguetão"
+                "🎨" -> "Tintas"
+                "⭐" -> "Estrela"
+                else -> emoji
+            }
+            cards.add(MemoryCard(id = cardId++, icon = emoji, label = emojiLabel))
+            cards.add(MemoryCard(id = cardId++, icon = emoji, label = emojiLabel))
         }
         _memoryCards.value = cards.shuffled()
         _matchedPairs.value = 0
@@ -78,38 +92,52 @@ class GamesViewModel : ViewModel() {
 
     fun flipMemoryCard(index: Int, onPairMatched: () -> Unit) {
         if (isBusyFlipping) return
-        val currentList = _memoryCards.value.toMutableList()
+        val currentList = _memoryCards.value
+        if (index !in currentList.indices) return
         val card = currentList[index]
 
         if (card.isFlipped || card.isMatched) return
 
-        card.isFlipped = true
-        _memoryCards.value = currentList
+        val flippedCard = card.copy(isFlipped = true)
+        val listWithFlipped = currentList.toMutableList().apply {
+            set(index, flippedCard)
+        }
 
         if (firstFlippedIndex == null) {
             firstFlippedIndex = index
+            _memoryCards.value = listWithFlipped
         } else {
             val prevIndex = firstFlippedIndex!!
             val prevCard = currentList[prevIndex]
 
             if (prevCard.icon == card.icon) {
                 // Match!
-                prevCard.isMatched = true
-                card.isMatched = true
+                val matchedPrev = prevCard.copy(isMatched = true, isFlipped = true)
+                val matchedCurr = card.copy(isMatched = true, isFlipped = true)
+                val matchedList = listWithFlipped.toMutableList().apply {
+                    set(prevIndex, matchedPrev)
+                    set(index, matchedCurr)
+                }
+                _memoryCards.value = matchedList
                 _matchedPairs.value = _matchedPairs.value + 1
                 firstFlippedIndex = null
-                _memoryCards.value = currentList
                 onPairMatched()
             } else {
-                // No match, hide back after delay
+                // No match, show both flipped temporarily then unflip
+                _memoryCards.value = listWithFlipped
                 isBusyFlipping = true
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    prevCard.isFlipped = false
-                    card.isFlipped = false
-                    firstFlippedIndex = null
+                firstFlippedIndex = null
+
+                viewModelScope.launch {
+                    delay(900)
+                    val latestList = _memoryCards.value.toMutableList()
+                    if (prevIndex in latestList.indices && index in latestList.indices) {
+                        latestList[prevIndex] = latestList[prevIndex].copy(isFlipped = false)
+                        latestList[index] = latestList[index].copy(isFlipped = false)
+                        _memoryCards.value = latestList
+                    }
                     isBusyFlipping = false
-                    _memoryCards.value = currentList.toList()
-                }, 900)
+                }
             }
         }
     }

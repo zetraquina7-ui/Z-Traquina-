@@ -60,10 +60,12 @@ import com.example.ui.theme.SunshineYellow
 import com.example.viewmodel.ChatViewModel
 import com.example.viewmodel.MainViewModel
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 @Composable
 fun ChatScreen(
     mainViewModel: MainViewModel,
-    chatViewModel: ChatViewModel = remember { ChatViewModel() },
+    chatViewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     modifier: Modifier = Modifier
 ) {
     val messages by chatViewModel.messages.collectAsState()
@@ -106,7 +108,7 @@ fun ChatScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.img_ze_mascot),
+                    painter = painterResource(id = R.drawable.img_app_icon_1785061192574),
                     contentDescription = "Mascote Zé Traquina",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -210,7 +212,7 @@ fun ChatScreen(
                         horizontalArrangement = Arrangement.Start
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.img_ze_mascot),
+                            painter = painterResource(id = R.drawable.img_app_icon_1785061192574),
                             contentDescription = "Mascote",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier

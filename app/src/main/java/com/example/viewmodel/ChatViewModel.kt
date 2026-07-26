@@ -16,7 +16,7 @@ data class ChatMessage(
 )
 
 class ChatViewModel : ViewModel() {
-    private val repository = ZeTraquinaChatRepository()
+    private val repository by lazy { ZeTraquinaChatRepository() }
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(
         listOf(

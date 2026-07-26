@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import com.example.audio.AudioSynthesizer
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -101,7 +102,8 @@ data class PianoKeyItem(
     val label: String,
     val emoji: String,
     val color: Color,
-    val speechText: String
+    val speechText: String,
+    val frequencyHz: Double = 261.63
 )
 
 @Composable
@@ -235,6 +237,7 @@ fun MemoryGameView(
 ) {
     val cards by gamesViewModel.memoryCards.collectAsState()
     val matchedPairs by gamesViewModel.matchedPairs.collectAsState()
+    val totalPairs = cards.size / 2
 
     Column(
         modifier = Modifier
@@ -245,16 +248,24 @@ fun MemoryGameView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Pares: $matchedPairs / ${cards.size / 2}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = SkyBluePrimary
-            )
+            Column {
+                Text(
+                    text = "Jogo da Memória 🧠✨",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF0F172A)
+                )
+                Text(
+                    text = "Pares encontrados: $matchedPairs / $totalPairs",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = SkyBluePrimary
+                )
+            }
 
             Button(
                 onClick = {
@@ -270,26 +281,26 @@ fun MemoryGameView(
             }
         }
 
-        if (matchedPairs == cards.size / 2 && cards.isNotEmpty()) {
+        if (totalPairs > 0 && matchedPairs == totalPairs) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 8.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MintGreen)
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(10.dp)
+                        .padding(12.dp)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     ZeTraquinaMascot(
-                        size = 56.dp,
+                        size = 60.dp,
                         showSpeechBubble = true,
                         emotion = MascotEmotion.CELEBRATING,
                         triggerEmotionKey = matchedPairs,
-                        customPhrase = "PARABÉNS! Ganhaste +10 Estrelas! 🎉⭐",
+                        customPhrase = "PARABÉNS! Encontraste todos os pares! 🎉⭐",
                         onInteract = {
                             mainViewModel.speak("És um génio dos jogos de memória!")
                         }
@@ -298,42 +309,80 @@ fun MemoryGameView(
             }
         }
 
+        Spacer(modifier = Modifier.height(6.dp))
+
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 16.dp),
+            columns = GridCells.Fixed(4),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 20.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            itemsIndexed(cards) { index, card ->
+            itemsIndexed(cards, key = { _, card -> card.id }) { index, card ->
+                val isRevealed = card.isFlipped || card.isMatched
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1.15f)
+                        .aspectRatio(0.85f)
                         .clickable {
                             if (!card.isFlipped && !card.isMatched) {
-                                mainViewModel.speak(card.label)
                                 gamesViewModel.flipMemoryCard(index) {
                                     mainViewModel.addStars(5)
-                                    mainViewModel.speak("Muito bem! Encontraste um par!")
+                                    mainViewModel.speak("Par do ${card.label}! Muito bem!")
+                                }
+                                if (!card.isMatched) {
+                                    mainViewModel.speak(card.label)
                                 }
                             }
                         }
                         .testTag("memory_card_$index"),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (card.isFlipped || card.isMatched) SkyBluePrimary else SunshineYellow
+                        containerColor = when {
+                            card.isMatched -> Color(0xFFDCFCE7) // Soft Mint Green
+                            card.isFlipped -> Color(0xFFE0F2FE) // Soft Sky Blue
+                            else -> SunshineYellow
+                        }
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = if (isRevealed) 2.dp else 4.dp),
+                    border = BorderStroke(
+                        width = 1.5.dp,
+                        color = when {
+                            card.isMatched -> MintGreen
+                            card.isFlipped -> SkyBluePrimary
+                            else -> Color(0xFFF59E0B)
+                        }
+                    )
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (card.isFlipped || card.isMatched) {
-                            Text(text = card.icon, fontSize = 42.sp)
+                        if (isRevealed) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = card.icon, fontSize = 34.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = card.label,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E293B)
+                                )
+                            }
                         } else {
-                            Text(text = "❓", fontSize = 32.sp)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = "🧩", fontSize = 28.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Zé",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF1E293B)
+                                )
+                            }
                         }
                     }
                 }
@@ -859,122 +908,291 @@ fun BalloonPopGameView(
     }
 }
 
-// --- 6. Magic Piano Game ---
+// --- 6. Magic Piano & Xylophone Game ---
 @Composable
 fun MagicPianoGameView(
     mainViewModel: MainViewModel
 ) {
     val pianoKeys = remember {
         listOf(
-            PianoKeyItem("Dó", "Dó 🐶", "🐕", Color(0xFFFF8A80), "Nota Dó de Cão"),
-            PianoKeyItem("Ré", "Ré 🐱", "🐈", Color(0xFFFFD180), "Nota Ré de Gato"),
-            PianoKeyItem("Mi", "Mi 🐸", "🐸", Color(0xFFFFEE58), "Nota Mi de Sapo"),
-            PianoKeyItem("Fá", "Fá 🦁", "🦁", Color(0xFFD4E157), "Nota Fá de Leão"),
-            PianoKeyItem("Sol", "Sol 🐮", "🐮", Color(0xFF81D4FA), "Nota Sol de Vaca"),
-            PianoKeyItem("Lá", "Lá 🐥", "🐥", Color(0xFFCE93D8), "Nota Lá de Pássaro"),
-            PianoKeyItem("Si", "Si 🌟", "⭐", Color(0xFFF48FB1), "Nota Si de Estrela")
+            PianoKeyItem("Dó", "Dó 🐶", "🐕", Color(0xFFFF8A80), "Dó", 261.63),
+            PianoKeyItem("Ré", "Ré 🐱", "🐈", Color(0xFFFFD180), "Ré", 293.66),
+            PianoKeyItem("Mi", "Mi 🐸", "🐸", Color(0xFFFFEE58), "Mi", 329.63),
+            PianoKeyItem("Fá", "Fá 🦁", "🦁", Color(0xFFD4E157), "Fá", 349.23),
+            PianoKeyItem("Sol", "Sol 🐮", "🐮", Color(0xFF81D4FA), "Sol", 392.00),
+            PianoKeyItem("Lá", "Lá 🐥", "🐥", Color(0xFFCE93D8), "Lá", 440.00),
+            PianoKeyItem("Si", "Si 🌟", "⭐", Color(0xFFF48FB1), "Si", 493.88),
+            PianoKeyItem("Dó²", "Dó² 🚀", "🚀", Color(0xFFA7F3D0), "Dó Agudo", 523.25)
         )
     }
 
+    var selectedInstrument by remember { mutableStateOf("xylophone") } // "xylophone", "piano", "chime"
+    var voiceGuideEnabled by remember { mutableStateOf(false) }
     var lastPlayedKey by remember { mutableStateOf<String?>(null) }
+    var isPlayingDemoSong by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Xilofone & Piano Mágico 🎹🎵",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Toca nas teclas para criar melodias alegres!",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Surface(
+        // --- Top Title & Instrument Selector ---
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                color = SunshineYellow.copy(alpha = 0.25f)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(imageVector = Icons.Default.MusicNote, contentDescription = null, tint = SkyBluePrimary, modifier = Modifier.size(36.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column {
                     Text(
-                        text = if (lastPlayedKey != null) "A tocar: $lastPlayedKey 🎶" else "Toca numa tecla abaixo!",
-                        fontSize = 16.sp,
+                        text = "Xilofone & Piano Mágico 🎹🎶",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.DarkGray
+                        color = Color(0xFF0F172A)
                     )
+                    Text(
+                        text = "Toca nas barras para ouvir o som real!",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                // Voice toggle
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (voiceGuideEnabled) SunshineYellow else Color(0xFFE2E8F0),
+                    modifier = Modifier.clickable { voiceGuideEnabled = !voiceGuideEnabled }
+                ) {
+                    Text(
+                        text = if (voiceGuideEnabled) "🗣️ Voz ON" else "🗣️ Voz OFF",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Instrument Mode Tabs
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val instruments = listOf(
+                    "xylophone" to "Xilofone 🪵",
+                    "piano" to "Piano 🎹",
+                    "chime" to "Sinos 🔔"
+                )
+                instruments.forEach { (type, label) ->
+                    val isSelected = selectedInstrument == type
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) SkyBluePrimary else Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                selectedInstrument = type
+                                AudioSynthesizer.stopMelody()
+                                isPlayingDemoSong = false
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else Color(0xFF475569)
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // --- Active Key Display ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = SunshineYellow.copy(alpha = 0.2f)
         ) {
-            pianoKeys.forEach { key ->
-                var isPressed by remember { mutableStateOf(false) }
-                val scale by animateFloatAsState(targetValue = if (isPressed) 1.03f else 1.0f)
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-                        .scale(scale)
-                        .clickable {
-                            isPressed = true
-                            lastPlayedKey = key.note
-                            mainViewModel.speak(key.speechText)
-                            mainViewModel.addStars(1)
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ isPressed = false }, 250)
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = SkyBluePrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when {
+                            isPlayingDemoSong -> "A tocar Melodia Mágica... 🎶"
+                            lastPlayedKey != null -> "Nota: $lastPlayedKey 🎶"
+                            else -> "Toca nas teclas abaixo para tocar!"
                         },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = key.color),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = key.emoji, fontSize = 24.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = key.label,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.DarkGray
-                            )
-                        }
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
+                    )
+                }
 
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = "Nota",
-                            tint = Color.DarkGray,
-                            modifier = Modifier.size(20.dp)
+                if (isPlayingDemoSong) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.Red.copy(alpha = 0.15f),
+                        modifier = Modifier.clickable {
+                            AudioSynthesizer.stopMelody()
+                            isPlayingDemoSong = false
+                        }
+                    ) {
+                        Text(
+                            text = "Parar ⏹",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(70.dp))
+        // --- Musical Keys / Xylophone Bars ---
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            pianoKeys.forEachIndexed { index, key ->
+                var isPressed by remember { mutableStateOf(false) }
+                val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1.0f)
+
+                // Xylophone bar length effect (longer at bottom, shorter at top)
+                val barFraction = if (selectedInstrument == "xylophone") {
+                    1.0f - (index * 0.035f)
+                } else {
+                    1.0f
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(barFraction)
+                        .height(48.dp)
+                        .scale(scale)
+                        .clickable {
+                            isPressed = true
+                            lastPlayedKey = "${key.note} (${key.label})"
+
+                            // 1. Instant sound synth
+                            AudioSynthesizer.playSynthNote(
+                                freqHz = key.frequencyHz,
+                                durationMs = if (selectedInstrument == "xylophone") 400 else 500,
+                                instrumentType = selectedInstrument
+                            )
+
+                            // 2. Voice guide if enabled
+                            if (voiceGuideEnabled) {
+                                mainViewModel.speak(key.note)
+                            }
+
+                            mainViewModel.addStars(1)
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ isPressed = false }, 200)
+                        },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = key.color),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = key.emoji, fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = key.label,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF1E293B)
+                            )
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.4f),
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "${key.frequencyHz.toInt()}Hz",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E293B)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // --- Demo Songs Shortcuts ---
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Tocar Músicas Automáticas: 🎵",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val demoSongs = listOf(
+                    0 to "Férias ☀️",
+                    4 to "ABC 🔤",
+                    9 to "É Natal 🎄",
+                    1 to "Santos 🎈"
+                )
+                items(demoSongs) { (songIdx, title) ->
+                    Button(
+                        onClick = {
+                            isPlayingDemoSong = true
+                            lastPlayedKey = title
+                            AudioSynthesizer.playSongMelody(songIdx, false)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(text = title, fontSize = 12.sp, color = Color(0xFF1E293B), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 

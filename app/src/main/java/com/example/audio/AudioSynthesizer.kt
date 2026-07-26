@@ -106,8 +106,75 @@ object AudioSynthesizer {
     }
 
     fun playNote(freqHz: Double, durationMs: Int = 350) {
+        playSynthNote(freqHz, durationMs, "piano")
+    }
+
+    fun playSynthNote(freqHz: Double, durationMs: Int = 450, instrumentType: String = "piano") {
         CoroutineScope(Dispatchers.IO).launch {
-            playNoteSync(freqHz, durationMs)
+            try {
+                val sampleRate = 22050
+                val numSamples = (durationMs * sampleRate) / 1000
+                val generatedSnd = ByteArray(2 * numSamples)
+
+                for (i in 0 until numSamples) {
+                    val time = i.toDouble() / sampleRate
+                    val envelope = when (instrumentType) {
+                        "xylophone" -> Math.exp(-time * 11.0) // sharp metallic ring & fast decay
+                        "chime" -> Math.exp(-time * 6.0)
+                        else -> Math.exp(-time * 3.2) // warm piano decay
+                    }
+
+                    val signal = when (instrumentType) {
+                        "xylophone" -> {
+                            // Metallic chime harmonics for wooden/metal xylophone bar
+                            sin(2.0 * Math.PI * freqHz * time) * 0.5 +
+                            sin(6.0 * Math.PI * freqHz * time) * 0.35 +
+                            sin(10.0 * Math.PI * freqHz * time) * 0.15
+                        }
+                        "chime" -> {
+                            sin(2.0 * Math.PI * freqHz * time) * 0.6 +
+                            sin(4.0 * Math.PI * freqHz * time) * 0.4
+                        }
+                        else -> {
+                            // Rich warm piano tone
+                            sin(2.0 * Math.PI * freqHz * time) * 0.6 +
+                            sin(4.0 * Math.PI * freqHz * time) * 0.25 +
+                            sin(8.0 * Math.PI * freqHz * time) * 0.15
+                        }
+                    }
+
+                    val valInt = (signal * envelope * 32767).toInt().coerceIn(-32768, 32767)
+                    generatedSnd[2 * i] = (valInt and 0x00ff).toByte()
+                    generatedSnd[2 * i + 1] = (valInt and 0xff00 shr 8).toByte()
+                }
+
+                val track = AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(sampleRate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(generatedSnd.size)
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+
+                track.write(generatedSnd, 0, generatedSnd.size)
+                track.play()
+
+                delay((durationMs + 100).toLong())
+                track.stop()
+                track.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

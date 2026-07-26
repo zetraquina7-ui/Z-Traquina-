@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("inicio", "Início", Icons.Default.Home)
     object Learn : Screen("aprender", "Aprender", Icons.Default.School)
-    object Music : Screen("musicas", "Músicas", Icons.Default.Star)
     object Games : Screen("jogos", "Jogos", Icons.Default.SportsEsports)
     object Media : Screen("videos", "Vídeos", Icons.Default.OndemandVideo)
     object Chat : Screen("chat", "ZéAI", Icons.Default.Face)
@@ -27,7 +26,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 val mainNavScreens = listOf(
     Screen.Home,
     Screen.Learn,
-    Screen.Music,
     Screen.Games,
     Screen.Media,
     Screen.Chat,

@@ -1,0 +1,71 @@
+--- /app/applet/app/src/main/java/com/example/ui/screens/HomeScreen.kt
++++ /app/applet/app/src/main/java/com/example/ui/screens/HomeScreen.kt
+@@ -172,6 +172,52 @@
+                 )
+             }
+ 
++            // --- Mascot Interactive Card ---
++            Card(
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .testTag("mascot_home_card"),
++                shape = RoundedCornerShape(14.dp),
++                colors = CardDefaults.cardColors(
++                    containerColor = MaterialTheme.colorScheme.primaryContainer
++                ),
++                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
++            ) {
++                Row(
++                    modifier = Modifier
++                        .padding(8.dp)
++                        .fillMaxWidth(),
++                    verticalAlignment = Alignment.CenterVertically,
++                    horizontalArrangement = Arrangement.SpaceBetween
++                ) {
++                    ZeTraquinaMascot(
++                        size = 42.dp,
++                        showSpeechBubble = false,
++                        emotion = MascotEmotion.HAPPY,
++                        triggerEmotionKey = userProgress.starsCount,
++                        onInteract = {
++                            viewModel.speak("Olá amiguinhos! Tens ${userProgress.starsCount} estrelas reluzentes!")
++                            viewModel.addStars(1)
++                        }
++                    )
++
++                    Spacer(modifier = Modifier.width(6.dp))
++
++                    Surface(
++                        shape = RoundedCornerShape(8.dp),
++                        color = Color(0xFFFF4081),
++                        modifier = Modifier.clickable { onNavigate(Screen.Chat) }
++                    ) {
++                        Text(
++                            text = "ZéAI 💬",
++                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
++                            fontSize = 11.sp,
++                            fontWeight = FontWeight.ExtraBold,
++                            color = Color.White
++                        )
++                    }
++                }
++            }
+ 
+             // --- Quick Menu Section (2x2 Grid) ---
+             Column(
+@@ -218,15 +264,6 @@
+                         modifier = Modifier.weight(1f),
+                         onClick = { onNavigate(Screen.Media) }
+                     )
+-                    QuickMenuCard(
+-                        title = "ZéAI",
+-                        subtitle = "Falar com o Zé Traquina",
+-                        icon = Icons.Default.Face,
+-                        bgColor = Color(0xFFE53935),
+-                        testTag = "home_quick_chat",
+-                        modifier = Modifier.weight(1f),
+-                        onClick = { onNavigate(Screen.Chat) }
+-                    )
++                    Spacer(modifier = Modifier.weight(1f))
+                 }
+             }
